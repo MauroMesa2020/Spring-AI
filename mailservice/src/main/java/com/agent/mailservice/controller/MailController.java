@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.agent.mailservice.dto.LastMailsResponse;
 import com.agent.mailservice.dto.MailRequest;
-import com.agent.mailservice.dto.MailResponse;
+import com.agent.mailservice.dto.SenderResponse;
 import com.agent.mailservice.service.MailService;
 
 import jakarta.validation.Valid;
@@ -29,7 +29,7 @@ public class MailController {
     }
 
     @PostMapping("/send")
-    public ResponseEntity<MailResponse> sender(@Valid @RequestBody MailRequest request){
+    public ResponseEntity<SenderResponse> sender(@Valid @RequestBody MailRequest request){
         
         return ResponseEntity.ok(_mailService.sender(request)); 
     }

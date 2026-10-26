@@ -1,4 +1,4 @@
-package com.agent.mailservice.agent.dtos;
+package com.agent.mailservice.agent.types;
 
 import java.util.List;
 

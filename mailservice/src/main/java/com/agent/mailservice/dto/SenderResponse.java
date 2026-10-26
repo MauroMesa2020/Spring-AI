@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data 
 @NoArgsConstructor 
 @AllArgsConstructor 
-public class MailResponse {
+public class SenderResponse {
     private String to;
     private String body;
     private String subject;

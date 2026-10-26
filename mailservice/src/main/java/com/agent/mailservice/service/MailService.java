@@ -17,7 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.agent.mailservice.dto.LastMailsResponse;
 import com.agent.mailservice.dto.MailRequest;
-import com.agent.mailservice.dto.MailResponse;
+import com.agent.mailservice.dto.SenderResponse;
 
 import jakarta.mail.Address;
 import jakarta.mail.Folder;
@@ -60,7 +60,7 @@ public class MailService {
     private String imapPassword;
 
 
-    public MailResponse sender(MailRequest mailRequest) {
+    public SenderResponse sender(MailRequest mailRequest) {
 
         log.info("Starting email send process. Recipient: {}", mailRequest.getTo());
 
@@ -75,7 +75,7 @@ public class MailService {
 
             log.info("Email sent successfully to {}", mailRequest.getTo());
 
-            MailResponse response = new MailResponse();
+            SenderResponse response = new SenderResponse();
             response.setTo(mailRequest.getTo());
             response.setSubject(mailRequest.getSubject());
             response.setBody(mailRequest.getBody());

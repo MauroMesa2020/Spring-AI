@@ -7,7 +7,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 import com.agent.mailservice.dto.LastMailsResponse;
 import com.agent.mailservice.dto.MailRequest;
-import com.agent.mailservice.dto.MailResponse;
+import com.agent.mailservice.dto.SenderResponse;
 import com.agent.mailservice.service.MailService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +48,7 @@ public class MailTools {
     After successful execution, report that the email was sent.
     Do not call this tool again for the same request after it succeeds.
     """)
-    public MailResponse sendMail(
+    public SenderResponse sendMail(
             @ToolParam(description = "Recipient email address") String to,
             @ToolParam(description = "Email message content") String body,
             @ToolParam(description = "Email subject line") String subject) {
@@ -60,7 +60,7 @@ public class MailTools {
         request.setBody(body);
         request.setSubject(subject);
 
-        MailResponse response = _mailService.sender(request);
+        SenderResponse response = _mailService.sender(request);
 
         log.info("END sendMail tool. Recipient: {}", to);
 

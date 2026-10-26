@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.agent.mailservice.dto.ChatData;
 import com.agent.mailservice.dto.ChatRequest;
 import com.agent.mailservice.dto.ChatResponse;
 
@@ -22,7 +23,7 @@ public class ChatController {
     }
 
     @PostMapping("/analyze")
-    public ResponseEntity<ChatResponse> analyze(
+    public ResponseEntity<ChatData> analyze(
             @Valid @RequestBody ChatRequest request) {
 
         return ResponseEntity.ok(
@@ -31,7 +32,7 @@ public class ChatController {
     }
 
     @PostMapping("/send")
-    public ResponseEntity<ChatResponse> sender(@Valid @RequestBody ChatRequest request){
+    public ResponseEntity<ChatData> sender(@Valid @RequestBody ChatRequest request){
         
         return ResponseEntity.ok(
             _chatService.analyzeEmails(request.getMessage())
