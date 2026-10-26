@@ -1,0 +1,28 @@
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${GMAIL_APP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  ai:
+    openai:
+      api-key: ${GROQ_API_KEY}
+      base-url: https://api.groq.com/openai/v1
+      chat:
+        replay-reasoning-content: false
+        options:
+          model: openai/gpt-oss-120b
+
+mail:
+  imap:
+    host: imap.gmail.com
+    port: 993
+    username: ${IMAP_USERNAME}
+    password: ${IMAP_PASSWORD}
