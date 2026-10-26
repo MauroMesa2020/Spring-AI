@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.agent.mailservice.dto.ChatData;
 import com.agent.mailservice.dto.ChatRequest;
-import com.agent.mailservice.dto.ChatResponse;
 
 import com.agent.mailservice.service.ChatService;
 
