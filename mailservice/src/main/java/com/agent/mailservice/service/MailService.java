@@ -1,5 +1,6 @@
 package com.agent.mailservice.service;
 
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,8 +27,14 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.search.AndTerm;
+import jakarta.mail.search.BodyTerm;
+import jakarta.mail.search.ComparisonTerm;
+import jakarta.mail.search.FromStringTerm;
 import jakarta.mail.search.FromTerm;
+import jakarta.mail.search.ReceivedDateTerm;
 import jakarta.mail.search.SearchTerm;
+import jakarta.mail.search.SubjectTerm;
 import lombok.extern.slf4j.Slf4j;
 
 // para extraer contenidos
@@ -399,5 +406,193 @@ public class MailService {
         }
 
         return body.substring(0, maxChars) + "...";
+    }
+
+
+    public List<LastMailsResponse> searchEmails(
+        String subject,
+        String body,
+        String sender,
+        LocalDate fromDate,
+        LocalDate toDate,
+        int limit
+    ) {
+        if (limit < 1 || limit > 100) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Limit must be between 1 and 100"
+            );
+        }
+
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "fromDate cannot be after toDate"
+            );
+        }
+
+        List<SearchTerm> criteria = new ArrayList<>();
+
+        if (subject != null && !subject.isBlank()) {
+            criteria.add(new SubjectTerm(subject.trim()));
+        }
+
+        if (body != null && !body.isBlank()) {
+            criteria.add(new BodyTerm(body.trim()));
+        }
+
+        if (sender != null && !sender.isBlank()) {
+            criteria.add(new FromStringTerm(sender.trim()));
+        }
+
+        ZoneId zone = ZoneId.systemDefault();
+
+        if (fromDate != null) {
+            Date start = Date.from(
+                    fromDate.atStartOfDay(zone).toInstant()
+            );
+
+            criteria.add(
+                    new ReceivedDateTerm(ComparisonTerm.GE, start)
+            );
+        }
+
+        if (toDate != null) {
+            // Incluye todo el día indicado.
+            Date endExclusive = Date.from(
+                    toDate.plusDays(1).atStartOfDay(zone).toInstant()
+            );
+
+            criteria.add(
+                    new ReceivedDateTerm(ComparisonTerm.LT, endExclusive)
+            );
+        }
+
+        if (criteria.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "At least one search criterion is required"
+            );
+        }
+
+        Store store = null;
+        Folder inbox = null;
+
+        try {
+            Properties properties = new Properties();
+            properties.put("mail.store.protocol", "imaps");
+            properties.put("mail.imaps.host", imapHost);
+            properties.put("mail.imaps.port", imapPort);
+            properties.put("mail.imaps.ssl.enable", "true");
+
+            Session session = Session.getInstance(properties);
+
+            store = session.getStore("imaps");
+            store.connect(imapHost, imapUsername, imapPassword);
+
+            inbox = store.getFolder("INBOX");
+            inbox.open(Folder.READ_ONLY);
+
+            SearchTerm searchTerm = new AndTerm(
+                    criteria.toArray(new SearchTerm[0])
+            );
+
+            Message[] messages = inbox.search(searchTerm);
+
+            // Ordenar por fecha, desde el más reciente.
+            Arrays.sort(messages, (a, b) -> {
+                try {
+                    Date dateA = a.getReceivedDate();
+                    Date dateB = b.getReceivedDate();
+
+                    if (dateA == null) {
+                        dateA = a.getSentDate();
+                    }
+
+                    if (dateB == null) {
+                        dateB = b.getSentDate();
+                    }
+
+                    if (dateA == null) return dateB == null ? 0 : 1;
+                    if (dateB == null) return -1;
+
+                    return dateB.compareTo(dateA);
+
+                } catch (MessagingException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+            List<LastMailsResponse> result = new ArrayList<>();
+
+            int count = Math.min(limit, messages.length);
+
+            for (int i = 0; i < count; i++) {
+                Message message = messages[i];
+
+                LastMailsResponse response = new LastMailsResponse();
+
+                Address[] addresses = message.getFrom();
+
+                if (addresses != null && addresses.length > 0) {
+                    response.setFrom(addresses[0].toString());
+                }
+
+                response.setSubject(message.getSubject());
+
+                Date receivedDate = message.getReceivedDate();
+
+                if (receivedDate == null) {
+                    receivedDate = message.getSentDate();
+                }
+
+                if (receivedDate != null) {
+                    response.setReceivedAt(
+                            receivedDate.toInstant()
+                                    .atZone(zone)
+                                    .toLocalDateTime()
+                    );
+                }
+
+                response.setBody(
+                        truncateBody(extractBody(message), 3000)
+                );
+
+                result.add(response);
+            }
+
+            log.info(
+                    "Email search completed. Matches: {}, returned: {}",
+                    messages.length,
+                    result.size()
+            );
+
+            return result;
+
+        } catch (Exception error) {
+            log.error("Error searching emails", error);
+
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error searching emails"
+            );
+
+        } finally {
+            try {
+                if (inbox != null && inbox.isOpen()) {
+                    inbox.close(false);
+                }
+            } catch (MessagingException error) {
+                log.warn("Error closing inbox", error);
+            }
+
+            try {
+                if (store != null && store.isConnected()) {
+                    store.close();
+                }
+            } catch (MessagingException error) {
+                log.warn("Error closing mail connection", error);
+            }
+        }
     }
 }

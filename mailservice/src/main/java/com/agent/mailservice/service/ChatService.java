@@ -1,7 +1,9 @@
 package com.agent.mailservice.service;
 
-import org.springframework.ai.chat.client.ChatClient;
+import java.util.List;
 
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 
 import com.agent.mailservice.agent.tools.MailTools;
@@ -35,7 +37,7 @@ public class ChatService {
             RESULT: <complete result>
 
             TYPE must be exactly one of:
-            SENDER, LAST, LAST_BY_USER, EMAIL_ANALYSIS.
+            SENDER, LAST, LAST_BY_USER, EMAIL_ANALYSIS, SEARCHMAILS.
 
             Include all relevant data returned by the tools.
             Never invent information.
@@ -65,28 +67,20 @@ public class ChatService {
                 .call()
                 .entity(SenderResponse.class);
 
-            return new ChatData(sender, null, null, null);
+            return new ChatData(sender, null, null);
         }
 
-        case "LAST" -> {
-            LastMailsResponse last = _chatClient.prompt()
-                .system("Convert the supplied result into a LastMailsResponse JSON object. Preserve all email data.")
+        case "LAST","LAST_BY_USER", "SEARCHMAILS" -> {
+            List<LastMailsResponse> last = _chatClient.prompt()
+                .system("Convert the supplied result into a JSON array of LastMailsResponse objects.")
                 .user(response)
                 .call()
-                .entity(LastMailsResponse.class);
+                .entity(new ParameterizedTypeReference<List<LastMailsResponse>>() {});
 
-            return new ChatData(null, last, null, null);
+            
+            return new ChatData(null, last, null);
         }
 
-        case "LAST_BY_USER" -> {
-            LastMailsResponse lastByUser = _chatClient.prompt()
-                .system("Convert the supplied result into a LastMailsResponse JSON object. Preserve all email data.")
-                .user(response)
-                .call()
-                .entity(LastMailsResponse.class);
-
-            return new ChatData(null, null, lastByUser, null);
-        }
 
         case "EMAIL_ANALYSIS" -> {
             EmailAnalysisResponse analysis = _chatClient.prompt()
@@ -95,7 +89,7 @@ public class ChatService {
                 .call()
                 .entity(EmailAnalysisResponse.class);
 
-            return new ChatData(null, null, null, analysis);
+            return new ChatData(null, null, analysis);
         }
 
         default -> throw new IllegalArgumentException(

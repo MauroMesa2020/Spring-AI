@@ -1,5 +1,6 @@
 package com.agent.mailservice.agent.tools;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.ai.tool.annotation.Tool;
@@ -85,5 +86,58 @@ public class MailTools {
         }
 
         return _mailService.getLastFromSender(sender, number);
+    }
+
+    @Tool(
+    name = "searchEmails",
+    description = """
+        Search emails in the INBOX using optional criteria:
+        subject, body keywords, sender email address, and received date range.
+        Multiple criteria are combined: emails must match all specified criteria.
+        At least one criterion must be provided.
+        Results are ordered from newest to oldest.
+        Use this tool for requests such as finding emails about a job interview,
+        messages mentioning Docker, or emails received during a specific period.
+        """
+    )
+    public List<LastMailsResponse> searchEmails(
+        @ToolParam(
+            description = "Optional subject text to search for. Use null if not specified."
+        )
+        String subject,
+
+        @ToolParam(
+            description = "Optional word or phrase to search for in the email body. Use null if not specified."
+        )
+        String body,
+
+        @ToolParam(
+            description = "Optional sender email address or text to match against the sender. Use null if not specified."
+        )
+        String sender,
+
+        @ToolParam(
+            description = "Optional start date for received emails, inclusive, in ISO format YYYY-MM-DD. Use null if not specified."
+        )
+        LocalDate fromDate,
+
+        @ToolParam(
+            description = "Optional end date for received emails, inclusive, in ISO format YYYY-MM-DD. Use null if not specified."
+        )
+        LocalDate toDate,
+
+        @ToolParam(
+            description = "Maximum number of emails to return, between 1 and 100. Use 5 by default."
+        )
+        int limit
+    ) {
+        return _mailService.searchEmails(
+            subject,
+            body,
+            sender,
+            fromDate,
+            toDate,
+            limit
+        );
     }
 }
